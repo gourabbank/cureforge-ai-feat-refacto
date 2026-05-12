@@ -1,0 +1,53 @@
+services:
+  cureforge:
+    container_name: cureforge_app
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./.input:/app/.input
+      - ./.cache:/app/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: cureforge_redis
+    env_file:
+      - .env
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm_gateway
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_LOG=ERROR
+    volumes:
+      - ./.cache:/app/.cache
+      - ./litellm/config.yml:/app/config.yml
+      - ./litellm/litellm_callbacks.py:/app/litellm_callbacks.py
+    entrypoint: ["/bin/sh", "-c"]
+    command: [litellm --config /app/config.yml > /dev/null 2>&1]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1', 4000), 2); s.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s

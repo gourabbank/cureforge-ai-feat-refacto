@@ -1,0 +1,7 @@
+{
+    "id": 0,
+    "name": "Template",
+    "description": "This is a template for creating new inventory simulations.",
+    "dataset_id": 0,
+    "kwargs": {}
+}

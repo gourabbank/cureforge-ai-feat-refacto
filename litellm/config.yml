@@ -1,0 +1,94 @@
+model_list:
+  - model_name: ollama/gemma4
+    litellm_params:
+      model: ollama_chat/gemma4
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: ollama/gemma4:31b-cloud
+    litellm_params:
+      model: ollama_chat/gemma4:31b-cloud
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: ollama/ministral-3:14b-cloud
+    litellm_params:
+      model: ollama_chat/ministral-3:14b-cloud
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: ollama/minimax-m2.7:cloud
+    litellm_params:
+      model: ollama_chat/minimax-m2.7:cloud
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: ollama/nemotron-3-super:cloud
+    litellm_params:
+      model: ollama_chat/nemotron-3-super:cloud
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: ollama/qwen3.5:397b-cloud
+    litellm_params:
+      model: ollama_chat/qwen3.5:397b-cloud
+      api_base: http://host.docker.internal:11434
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: groq/llama-3.1-8b-instant
+    litellm_params:
+      model: groq/llama-3.1-8b-instant
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: groq/openai/gpt-oss-120b
+    litellm_params:
+      model: groq/openai/gpt-oss-120b
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: cerebras/llama3.1-8b
+    litellm_params:
+      model: cerebras/llama3.1-8b
+      api_base: https://api.cerebras.ai/v1
+      api_key: os.environ/CEREBRAS_API_KEY
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+  - model_name: gemini/gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+      rpm: 30
+    model_info:
+      supports_function_calling: true
+
+router_settings:
+  redis_host: "redis"
+  redis_port: 6379
+  redis_password: os.environ/REDIS_PASSWORD
+
+litellm_settings:
+  master_key: os.environ/LITELLM_API_KEY
+  request_timeout: 600
+  callbacks:
+    - litellm_callbacks.proxy_handler
