@@ -17,6 +17,7 @@ from app.src.llm_gateway.providers.factory import get_provider
 from app.src.core.state import ResearchAgentState
 from app.src.core.tools.phases.phase_tools import PHASE_TOOLS, get_all_phase_tools
 from app.src.utils.logger import get_logger
+from app.src.utils.metrics import get_metrics
 from app.src.utils.settings import get_settings
 
 
@@ -71,6 +72,7 @@ def create_base_agent(
         ],
     )
 
+    get_metrics().increment("agent_created_total")
     logger.info(
         f"[{id}] Agent created for disease={disease_name} | model={resolved_model_name}"
     )

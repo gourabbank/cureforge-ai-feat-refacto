@@ -3,28 +3,25 @@ from time import perf_counter
 
 from langchain.agents.middleware import wrap_tool_call
 from langchain.messages import ToolMessage
-
 from langgraph.types import Command
 
 from app.src.utils.prompt_utils import truncate_error_message
 from app.src.utils.logger import get_logger
+from app.src.utils.metrics import get_metrics
 
 
 logger = get_logger(__name__)
 
 
 def _truncate_string(text: str, max_length: int = 50) -> str:
-    """Truncate text to max_length and append '...' if it exceeds the limit."""
     text_str = str(text)
     truncated = (
         f"{text_str[:max_length]}..." if len(text_str) > max_length else text_str
     )
-    truncated = truncated.replace("\n", "").replace("\r", "")
-    return truncated
+    return truncated.replace("\n", "").replace("\r", "")
 
 
 def _extract_tool_info(request) -> tuple[str, str, str]:
-    """Safely extract tool name, id, and arguments from request across middleware API variants."""
     tool_call = getattr(request, "tool_call", None)
 
     if isinstance(tool_call, dict):
@@ -64,15 +61,20 @@ def create_tool_logger_middleware(agent_id: str):
     @wrap_tool_call
     def log_tool_calls_with_agent_id(request, handler):
         tool_name, tool_id, args_str = _extract_tool_info(request)
+        m = get_metrics()
 
         logger.info(
-            f"{log_prefix} Tool call started: {tool_name} [{_truncate_string(tool_id)}] | Args: {_truncate_string(args_str)}"
+            f"{log_prefix} Tool call started: {tool_name} [{_truncate_string(tool_id)}] "
+            f"| Args: {_truncate_string(args_str)}"
         )
 
+        m.increment("tool_calls_total", {"tool_name": tool_name})
         start = perf_counter()
+
         try:
             result = handler(request)
-            duration_ms = (perf_counter() - start) * 1000
+            duration = perf_counter() - start
+            m.histogram("tool_duration_seconds", {"tool_name": tool_name}, duration)
 
             if isinstance(result, ToolMessage):
                 content_str = str(result.content)
@@ -86,25 +88,27 @@ def create_tool_logger_middleware(agent_id: str):
             if isinstance(result, ToolMessage) and content_str.startswith(
                 ("Error:", "Tool error:")
             ):
+                m.increment("tool_errors_total", {"tool_name": tool_name})
                 logger.warning(
-                    f"{log_prefix} Tool call returned error message: {tool_name} [{_truncate_string(tool_id)}] "
-                    f"({duration_ms:.2f} ms) | Args: {_truncate_string(args_str)} | Result: {res_trunc}"
+                    f"{log_prefix} Tool call returned error message: {tool_name} "
+                    f"[{_truncate_string(tool_id)}] ({duration * 1000:.2f} ms) "
+                    f"| Args: {_truncate_string(args_str)} | Result: {res_trunc}"
                 )
                 return result
 
             logger.info(
                 f"{log_prefix} Tool call completed: {tool_name} [{_truncate_string(tool_id)}] "
-                f"({duration_ms:.2f} ms) | Args: {_truncate_string(args_str)} | Result: {res_trunc}"
+                f"({duration * 1000:.2f} ms) | Args: {_truncate_string(args_str)} | Result: {res_trunc}"
             )
             return result
 
         except Exception as e:
-            duration_ms = (perf_counter() - start) * 1000
-            err_trunc = _truncate_string(str(e))
-
+            duration = perf_counter() - start
+            m.increment("tool_errors_total", {"tool_name": tool_name})
+            m.histogram("tool_duration_seconds", {"tool_name": tool_name}, duration)
             logger.exception(
                 f"{log_prefix} Tool call failed: {tool_name} [{_truncate_string(tool_id)}] "
-                f"({duration_ms:.2f} ms) | Args: {_truncate_string(args_str)} | Error: {err_trunc}"
+                f"({duration * 1000:.2f} ms) | Args: {_truncate_string(args_str)} | Error: {_truncate_string(str(e))}"
             )
             raise
 

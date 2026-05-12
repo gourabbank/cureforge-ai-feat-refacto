@@ -1,8 +1,10 @@
+import time
 from uuid import uuid4
 
 from langgraph.graph.state import CompiledStateGraph
 
 from app.src.utils.logger import get_logger
+from app.src.utils.metrics import get_metrics
 
 
 logger = get_logger(__name__)
@@ -19,8 +21,12 @@ def run_autonomous_research_loop(
     if max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
 
+    m = get_metrics()
     resolved_thread_id = thread_id or str(uuid4())
     config = {"configurable": {"thread_id": resolved_thread_id}}
+    loop_start = time.perf_counter()
+
+    m.gauge("active_agents", value=(m.get_value("active_agents") or 0) + 1)
 
     try:
         try:
@@ -47,6 +53,7 @@ def run_autonomous_research_loop(
                 config=config,
             )
         except Exception as e:
+            m.increment("agent_errors_total")
             logger.error("Unahandled error during initial agent invocation: %s", str(e))
 
         iterations = 0
@@ -57,6 +64,7 @@ def run_autonomous_research_loop(
                 break
 
             iterations += 1
+            m.increment("agent_iterations_total")
             current_phase = state.get("current_phase", "research")
 
             try:
@@ -77,6 +85,7 @@ def run_autonomous_research_loop(
                     config=config,
                 )
             except Exception as e:
+                m.increment("agent_errors_total")
                 logger.error(
                     "Unhandled error during agent invocation at iteration %d: %s",
                     iterations,
@@ -91,7 +100,9 @@ def run_autonomous_research_loop(
             "stopped": final_state.get("should_stop", False),
         }
         return final_state
+
     except Exception as e:
+        m.increment("agent_errors_total")
         return {
             "error": str(e),
             "_run_metadata": {
@@ -101,3 +112,7 @@ def run_autonomous_research_loop(
                 "stopped": True,
             },
         }
+    finally:
+        m.histogram("agent_runtime_seconds", value=time.perf_counter() - loop_start)
+        m.gauge("active_agents", value=max(0, (m.get_value("active_agents") or 1) - 1))
+        m.flush()
