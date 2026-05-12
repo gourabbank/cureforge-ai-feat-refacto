@@ -1,0 +1,4 @@
+2026-05-12 12:47:38 - [ERROR] => [ClinicalTrials] search failed: Connection timeout
+2026-05-12 12:47:39 - [ERROR] => [ClinicalTrials] get_trial_details failed for NCT99999999: 404 Not Found
+2026-05-12 12:47:40 - [ERROR] => [PubMed] search failed: Network error
+2026-05-12 12:47:41 - [ERROR] => [PubMed] get_pubmed_abstract failed for 99999999: Timeout

@@ -6,6 +6,14 @@ from app.src.core.tools.phases.hypothesize_tools.tools import (
 from app.src.core.tools.phases.research_tools.tools import (
     research_scan_literature,
 )
+from app.src.core.tools.phases.research_tools.clinical_trials import (
+    search_clinical_trials,
+    get_trial_details,
+)
+from app.src.core.tools.phases.research_tools.pubmed import (
+    search_pubmed,
+    get_pubmed_abstract,
+)
 from app.src.core.tools.phases.synthesize_tools.tools import (
     synthesize_define_next_steps,
     synthesize_generate_candidate_summary,
@@ -20,6 +28,10 @@ from app.src.core.tools.base_tools import all_base_tools
 PHASE_TOOLS = {
     "research": [
         research_scan_literature,
+        search_clinical_trials,
+        get_trial_details,
+        search_pubmed,
+        get_pubmed_abstract,
         transition_phase,
         *all_base_tools,
     ],
